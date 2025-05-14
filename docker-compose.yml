@@ -4,15 +4,16 @@ services:
     restart: unless-stopped
     networks:
       - backend
+      - dind-network
     env_file: .env
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:
       mode: replicated
-      replicas: 4
+      replicas: 3
       resources:
         reservations:
-          cpus: 0.5
+          cpus: "0.5"
           memory: 1024M
   cache:
     image: ghcr.io/falcondev-oss/github-actions-cache-server:latest
@@ -30,5 +31,7 @@ volumes:
   cache:
 
 networks:
+    dind-network:
+        external: true
     backend:
         external: false

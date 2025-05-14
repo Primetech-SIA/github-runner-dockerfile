@@ -1,3 +1,15 @@
+# docker dind
+docker run --runtime=sysbox-runc -e DOCKER_TLS_CERTDIR= --network dind-network --name sysbox-dind -d docker:dind
+docker compose up --remove-orphans --force-recreate -d
+docker compose up --remove-orphans --force-recreate --abort-on-container-exit
+docker compose build --no-cache
+
+docker system prune --volumes
+docker system prune --filter "until=24h"
+
+docker build -t pmt/github-runner --progress plain .
+docker context create gitpod01 --docker "host=ssh://root@gitpod01"
+
 # github-runner-dockerfile
 Dockerfile for the creation of a GitHub Actions runner image to be deployed dynamically. [Find the full explanation and tutorial here](https://baccini-al.medium.com/creating-a-dockerfile-for-dynamically-creating-github-actions-self-hosted-runners-5994cc08b9fb).
 

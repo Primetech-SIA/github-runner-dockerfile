@@ -1,16 +1,29 @@
-FROM ubuntu:24.04
+FROM ubuntu:24.10
 
-ARG RUNNER_VERSION="2.322.0"
+ARG RUNNER_VERSION="2.323.0"
 
 # Prevents installdependencies.sh from prompting the user and blocking the image creation
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt update -y && apt upgrade -y && useradd -m docker
 RUN apt install -y --no-install-recommends \
-    curl jq build-essential libssl-dev libffi-dev libicu-dev python3 python3-venv python3-dev python3-pip git unzip libasound2t64
+    curl jq build-essential libssl-dev libffi-dev libicu-dev python3 python3-venv python3-dev python3-pip git unzip libasound2t64 apt-utils
 
-# playwright deps
+# dind
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc &&\
+    chmod a+r /etc/apt/keyrings/docker.asc &&\
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null &&\
+    apt update &&\
+    apt install -y docker-ce-cli docker-buildx-plugin docker-compose-plugin
+
+    # playwright deps
 RUN apt install -y libglib2.0-0t64 libnss3 libnspr4 libdbus-1-3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 libxcb1 libxkbcommon0 libatspi2.0-0t64 libx11-6 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2   
+
+    # dotnet 9.0
+RUN apt install -y dotnet-sdk-9.0 dotnet-sdk-8.0
 
 RUN cd /home/docker && mkdir actions-runner && cd actions-runner \
     && curl -O -L https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
@@ -38,5 +51,8 @@ RUN . "$NVM_DIR/nvm.sh" && nvm alias default v${NODE_VERSION}
 ENV PATH="$NVM_DIR/versions/node/v${NODE_VERSION}/bin/:${PATH}"
 
 RUN npm install --global yarn
+
+RUN docker context create dind --docker "host=tcp://sysbox-dind:2375"
+ENV DOCKER_CONTEXT=dind
 
 ENTRYPOINT ["./start.sh"]
